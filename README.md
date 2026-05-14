@@ -1,4 +1,4 @@
-# Weekly Calendar for Dank Material Shell (DMS)
+# Calendar for Dank Material Shell (DMS)
 
 A comprehensive, Material 3 styled weekly calendar widget for Dank Material Shell, ported and enhanced from the Noctalia Shell ecosystem. It integrates natively with **Evolution Data Server (EDS)** to sync your local and cloud calendars (Google, Nextcloud, CalDAV, etc.) directly into your desktop shell.
 
