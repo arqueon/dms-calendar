@@ -27,6 +27,7 @@ Navigation arrows in the header move by the appropriate unit for each view (±1 
 - **Calendar Colors**: Each event uses the color defined in your Evolution/GNOME calendars.
 - **Click to Open**: Click any event to open it directly in Evolution (opens the specific event dialog) or in GNOME Calendar as a fallback.
 - **Tooltips**: Hover over any event to see its full title, time, location and description.
+- **Event Creation**: Create new events directly from the widget — pick a calendar, set a date via the mini date-picker, enter title and start/end times, and save.
 - **Persistent Cache**: Instant loading from local cache while background sync happens.
 - **Integrated Settings**: Configure first day of the week, 12h/24h format and UI opacities via DMS Settings.
 
@@ -91,6 +92,7 @@ Key changes for DMS:
 - `DankPopout` integration for the detail view.
 - Support for `ICalGLib 4.0` introspection.
 - Evolution deep-link on event click (`calendar://?source-uid=…&comp-uid=…`).
+- Inline event creation form with mini date-picker and calendar selector.
 
 ## License
 

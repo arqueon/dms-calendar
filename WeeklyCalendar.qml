@@ -16,11 +16,71 @@ PluginComponent {
         id: calendarService
     }
 
+    // Expose calendar list for the new-event form
+    property var calendars: (calendarService !== null ? calendarService.calendars : [])
+
+    // New-event form state
+    property bool showNewEventForm: false
+    property string createEventStatus: ""
+
     property string _calendarUri: "calendar://"
 
     Process {
         id: openCalendarProcess
         command: ["evolution", root._calendarUri]
+    }
+
+    // Create-event process — arguments set just before running
+    property string _ceTitle:  ""
+    property string _ceStart:  ""
+    property string _ceEnd:    ""
+    property string _ceCalUid: ""
+
+    Process {
+        id: createEventProcess
+        command: ["python3",
+                  calendarService.scriptsDir + "/create-event.py",
+                  root._ceTitle, root._ceStart, root._ceEnd, root._ceCalUid]
+
+        stdout: StdioCollector {
+            onStreamFinished: {
+                try {
+                    var res = JSON.parse(text.trim());
+                    if (res.success) {
+                        root.showNewEventForm = false;
+                        root.createEventStatus = "";
+                        loadEvents();
+                    } else {
+                        root.createEventStatus = res.error || "Unknown error";
+                    }
+                } catch(e) {
+                    root.createEventStatus = "Invalid response from script";
+                }
+            }
+        }
+        stderr: StdioCollector {
+            onStreamFinished: {
+                if (text.trim())
+                    root.createEventStatus = text.trim();
+            }
+        }
+    }
+
+    function createEvent(title, dateStr, startTimeStr, endTimeStr, calendarUid) {
+        var dp = dateStr.split("-");
+        var sp = startTimeStr.split(":");
+        var ep = endTimeStr.split(":");
+        var startDate = new Date(parseInt(dp[0]), parseInt(dp[1]) - 1, parseInt(dp[2]),
+                                 parseInt(sp[0]), parseInt(sp[1]), 0);
+        var endDate   = new Date(parseInt(dp[0]), parseInt(dp[1]) - 1, parseInt(dp[2]),
+                                 parseInt(ep[0]), parseInt(ep[1]), 0);
+        _ceTitle  = title;
+        _ceStart  = Math.floor(startDate.getTime() / 1000).toString();
+        _ceEnd    = Math.floor(endDate.getTime()   / 1000).toString();
+        _ceCalUid = calendarUid;
+        createEventStatus = "Creating…";
+        createEventProcess.running = false;
+        createEventProcess.running = true;
     }
 
     function openEventInCalendar(calendarUid, eventUid) {

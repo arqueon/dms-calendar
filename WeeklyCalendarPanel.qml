@@ -20,6 +20,48 @@ Item {
     property real hourHeight: (mainInstance ? mainInstance.hourHeight : 50)
     property real timeColumnWidth: 65
 
+    // Form local state
+    property int  formCalIndex: 0
+    property date formSelectedDate: new Date()
+    property date datePickerMonth:  new Date()
+    property var  datePickerDays: {
+        var _dep = mainInstance ? mainInstance.firstDayOfWeek : 1;
+        return calcDatePickerDays(datePickerMonth);
+    }
+
+    function calcDatePickerDays(month) {
+        var fow   = mainInstance ? mainInstance.firstDayOfWeek : 1;
+        var first = new Date(month.getFullYear(), month.getMonth(), 1);
+        var diff  = (first.getDay() - fow + 7) % 7;
+        var start = new Date(first);
+        start.setDate(start.getDate() - diff);
+        var dates = [], d = new Date(start);
+        for (var i = 0; i < 42; i++) {
+            dates.push(new Date(d));
+            d.setDate(d.getDate() + 1);
+        }
+        return dates;
+    }
+
+    // Reset form fields each time the form opens
+    Connections {
+        target: mainInstance
+        function onShowNewEventFormChanged() {
+            if (mainInstance && mainInstance.showNewEventForm) {
+                root.formCalIndex     = 0;
+                root.formSelectedDate = new Date(mainInstance.currentDate);
+                root.datePickerMonth  = new Date(mainInstance.currentDate.getFullYear(),
+                                                  mainInstance.currentDate.getMonth(), 1);
+                formTitleField.fieldText = "";
+                var h = new Date().getHours() + 1;
+                if (h >= 24) h = 9;
+                var h2 = (h + 1 < 24) ? h + 1 : h;
+                formStartField.fieldText = (h  < 10 ? "0" : "") + h  + ":00";
+                formEndField.fieldText   = (h2 < 10 ? "0" : "") + h2 + ":00";
+            }
+        }
+    }
+
     readonly property string currentView: (mainInstance ? mainInstance.currentView : "week")
     readonly property int colCount: (mainInstance ? mainInstance.viewColumnCount : 7)
 
@@ -149,6 +191,16 @@ Item {
                         }
                     }
 
+                    // ── New event button ──────────────────────────────────────
+                    DankActionButton {
+                        iconName: "add"
+                        buttonSize: 30
+                        onClicked: {
+                            if (mainInstance)
+                                mainInstance.showNewEventForm = !mainInstance.showNewEventForm;
+                        }
+                    }
+
                     // ── Navigation buttons ────────────────────────────────────
                     RowLayout {
                         spacing: Appearance.spacing.small
@@ -194,7 +246,7 @@ Item {
                 ColumnLayout {
                     anchors.fill: parent
                     spacing: 0
-                    visible: root.currentView === "week" || root.currentView === "4days" || root.currentView === "day"
+                    visible: !mainInstance.showNewEventForm && (root.currentView === "week" || root.currentView === "4days" || root.currentView === "day")
 
                     // Day-of-week sticky header
                     Row {
@@ -397,7 +449,7 @@ Item {
                 // ── AGENDA VIEW ───────────────────────────────────────────────
                 Item {
                     anchors.fill: parent
-                    visible: root.currentView === "agenda"
+                    visible: !mainInstance.showNewEventForm && root.currentView === "agenda"
 
                     // Empty-state message
                     ColumnLayout {
@@ -500,7 +552,7 @@ Item {
                 // ── MONTH VIEW ────────────────────────────────────────────────
                 Item {
                     anchors.fill: parent
-                    visible: root.currentView === "month"
+                    visible: !mainInstance.showNewEventForm && root.currentView === "month"
 
                     ColumnLayout {
                         anchors.fill: parent
@@ -644,6 +696,413 @@ Item {
                                         }
 
                                         Item { Layout.fillHeight: true }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // ── NEW EVENT FORM ────────────────────────────────────────────
+                Item {
+                    anchors.fill: parent
+                    visible: mainInstance ? mainInstance.showNewEventForm : false
+
+                    // helper component: labelled text input
+                    component FieldBox: Rectangle {
+                        property alias fieldText: fi.text
+                        property string placeholder: ""
+                        property int fieldWidth: 0
+                        Layout.fillWidth: fieldWidth === 0
+                        Layout.preferredWidth: fieldWidth > 0 ? fieldWidth : -1
+                        height: 36
+                        color: Theme.withAlpha(Theme.surfaceContainerHighest, 0.6)
+                        radius: Appearance.rounding.small
+                        border.color: fi.activeFocus ? Theme.primary
+                                                     : Theme.withAlpha(Theme.outline, 0.8)
+                        border.width: fi.activeFocus ? 2 : 1
+
+                        TextInput {
+                            id: fi
+                            anchors { fill: parent; margins: 10 }
+                            color: Theme.surfaceText
+                            font.pixelSize: 13
+                            selectionColor: Theme.withAlpha(Theme.primary, 0.35)
+                            selectedTextColor: Theme.surfaceText
+                            clip: true
+
+                            Text {
+                                anchors.fill: parent
+                                text: parent.parent.placeholder
+                                color: Theme.surfaceVariantText
+                                font.pixelSize: 13
+                                visible: parent.text === ""
+                            }
+                        }
+                    }
+
+                    ColumnLayout {
+                        anchors.centerIn: parent
+                        width: parent.width - 2 * Appearance.spacing.large
+                        spacing: Appearance.spacing.small
+
+                        // ── Form header ──
+                        RowLayout {
+                            Layout.fillWidth: true
+                            StyledText {
+                                text: "New Event"
+                                font.pixelSize: 16; font.weight: Font.Bold
+                                color: Theme.surfaceText
+                            }
+                            Item { Layout.fillWidth: true }
+                            DankActionButton {
+                                iconName: "close"; buttonSize: 28
+                                onClicked: { if (mainInstance) mainInstance.showNewEventForm = false; }
+                            }
+                        }
+
+                        // ── Title ──
+                        StyledText { text: "Title"; font.pixelSize: 11; color: Theme.surfaceVariantText }
+                        FieldBox {
+                            id: formTitleField
+                            placeholder: "Event title"
+                        }
+
+                        // ── Date picker + Start / End ──
+                        RowLayout {
+                            Layout.fillWidth: true
+                            spacing: Appearance.spacing.small
+
+                            // Date picker button + popup
+                            ColumnLayout {
+                                spacing: 4
+                                Layout.fillWidth: true
+
+                                StyledText { text: "Date"; font.pixelSize: 11; color: Theme.surfaceVariantText }
+
+                                Rectangle {
+                                    id: datePickerBtn
+                                    Layout.fillWidth: true
+                                    height: 36
+                                    color: Theme.withAlpha(Theme.surfaceContainerHighest, 0.6)
+                                    radius: Appearance.rounding.small
+                                    border.color: Theme.withAlpha(Theme.outline, 0.8)
+                                    border.width: 1
+
+                                    RowLayout {
+                                        anchors { fill: parent; leftMargin: 10; rightMargin: 10 }
+                                        spacing: 6
+                                        DankIcon { name: "calendar_month"; size: 15; color: Theme.surfaceVariantText }
+                                        StyledText {
+                                            text: Qt.formatDate(root.formSelectedDate, "ddd d MMM yyyy")
+                                            font.pixelSize: 12; color: Theme.surfaceText
+                                            Layout.fillWidth: true
+                                        }
+                                    }
+
+                                    MouseArea {
+                                        anchors.fill: parent; cursorShape: Qt.PointingHandCursor
+                                        onClicked: datePickerPopup.open()
+                                    }
+
+                                    Popup {
+                                        id: datePickerPopup
+                                        x: 0
+                                        y: datePickerBtn.height + 2
+                                        width: 280
+                                        padding: 8
+                                        closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutsideParent
+
+                                        background: Rectangle {
+                                            color: Theme.surfaceContainerHigh
+                                            radius: Appearance.rounding.normal
+                                            border.color: Theme.outline; border.width: 1
+                                        }
+
+                                        contentItem: ColumnLayout {
+                                            spacing: 4
+
+                                            // Month navigation
+                                            RowLayout {
+                                                Layout.fillWidth: true
+                                                DankActionButton {
+                                                    iconName: "chevron_left"; buttonSize: 26
+                                                    onClicked: {
+                                                        var d = new Date(root.datePickerMonth);
+                                                        d.setMonth(d.getMonth() - 1);
+                                                        root.datePickerMonth = d;
+                                                    }
+                                                }
+                                                StyledText {
+                                                    Layout.fillWidth: true
+                                                    horizontalAlignment: Text.AlignHCenter
+                                                    text: I18n.locale().monthName(root.datePickerMonth.getMonth(), Locale.LongFormat)
+                                                          + " " + root.datePickerMonth.getFullYear()
+                                                    font.pixelSize: 13; font.weight: Font.Bold
+                                                    color: Theme.surfaceText
+                                                }
+                                                DankActionButton {
+                                                    iconName: "chevron_right"; buttonSize: 26
+                                                    onClicked: {
+                                                        var d = new Date(root.datePickerMonth);
+                                                        d.setMonth(d.getMonth() + 1);
+                                                        root.datePickerMonth = d;
+                                                    }
+                                                }
+                                            }
+
+                                            // Day-of-week header
+                                            Row {
+                                                Layout.fillWidth: true
+                                                Repeater {
+                                                    model: 7
+                                                    StyledText {
+                                                        width: (264) / 7
+                                                        text: I18n.locale().dayName(
+                                                            (index + (mainInstance ? mainInstance.firstDayOfWeek : 1)) % 7,
+                                                            Locale.NarrowFormat)
+                                                        horizontalAlignment: Text.AlignHCenter
+                                                        font.pixelSize: 10; font.weight: Font.Bold
+                                                        color: Theme.surfaceVariantText
+                                                    }
+                                                }
+                                            }
+
+                                            // 6×7 day grid
+                                            GridLayout {
+                                                columns: 7
+                                                rowSpacing: 2; columnSpacing: 2
+                                                Layout.fillWidth: true
+
+                                                Repeater {
+                                                    model: root.datePickerDays.length
+
+                                                    Rectangle {
+                                                        property var  cellDate:   root.datePickerDays[index]
+                                                        property bool inMonth:    cellDate.getMonth() === root.datePickerMonth.getMonth()
+                                                        property bool isSelected: cellDate.toDateString() === root.formSelectedDate.toDateString()
+                                                        property bool isToday:    cellDate.toDateString() === new Date().toDateString()
+
+                                                        width: 264 / 7; height: width; radius: width / 2
+                                                        color: isSelected ? Theme.primary
+                                                             : isToday    ? Theme.withAlpha(Theme.primary, 0.2)
+                                                             : "transparent"
+
+                                                        StyledText {
+                                                            anchors.centerIn: parent
+                                                            text: cellDate.getDate().toString()
+                                                            font.pixelSize: 11
+                                                            font.weight: isSelected || isToday ? Font.Bold : Font.Normal
+                                                            color: isSelected ? Theme.onPrimary
+                                                                 : inMonth    ? Theme.surfaceText
+                                                                 : Theme.surfaceVariantText
+                                                        }
+
+                                                        MouseArea {
+                                                            anchors.fill: parent
+                                                            cursorShape: Qt.PointingHandCursor
+                                                            onClicked: {
+                                                                root.formSelectedDate = new Date(cellDate);
+                                                                root.datePickerMonth  = new Date(
+                                                                    cellDate.getFullYear(), cellDate.getMonth(), 1);
+                                                                datePickerPopup.close();
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+
+                                            // Today shortcut
+                                            Rectangle {
+                                                Layout.fillWidth: true
+                                                height: 28; radius: Appearance.rounding.small
+                                                color: Theme.withAlpha(Theme.surfaceContainerHighest, 0.6)
+
+                                                StyledText {
+                                                    anchors.centerIn: parent; text: "Today"
+                                                    font.pixelSize: 11; color: Theme.primary
+                                                }
+                                                MouseArea {
+                                                    anchors.fill: parent; cursorShape: Qt.PointingHandCursor
+                                                    onClicked: {
+                                                        var today = new Date();
+                                                        root.formSelectedDate = today;
+                                                        root.datePickerMonth  = new Date(today.getFullYear(), today.getMonth(), 1);
+                                                        datePickerPopup.close();
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            ColumnLayout {
+                                spacing: 4
+                                StyledText { text: "Start"; font.pixelSize: 11; color: Theme.surfaceVariantText }
+                                FieldBox { id: formStartField; fieldWidth: 72; placeholder: "09:00" }
+                            }
+                            ColumnLayout {
+                                spacing: 4
+                                StyledText { text: "End"; font.pixelSize: 11; color: Theme.surfaceVariantText }
+                                FieldBox { id: formEndField; fieldWidth: 72; placeholder: "10:00" }
+                            }
+                        }
+
+                        // ── Calendar selector ──
+                        StyledText { text: "Calendar"; font.pixelSize: 11; color: Theme.surfaceVariantText }
+
+                        Rectangle {
+                            id: calDropdown
+                            Layout.fillWidth: true
+                            height: 36
+                            color: Theme.withAlpha(Theme.surfaceContainerHighest, 0.6)
+                            radius: Appearance.rounding.small
+                            border.color: Theme.withAlpha(Theme.outline, 0.8)
+                            border.width: 1
+
+                            RowLayout {
+                                anchors { fill: parent; leftMargin: 10; rightMargin: 10 }
+                                spacing: 8
+
+                                Rectangle {
+                                    width: 12; height: 12; radius: 6
+                                    color: {
+                                        var cals = mainInstance ? mainInstance.calendars : [];
+                                        return (cals.length > root.formCalIndex && cals[root.formCalIndex].color)
+                                            ? cals[root.formCalIndex].color : Theme.primary;
+                                    }
+                                }
+
+                                StyledText {
+                                    text: {
+                                        var cals = mainInstance ? mainInstance.calendars : [];
+                                        return cals.length > root.formCalIndex
+                                            ? cals[root.formCalIndex].name : "No calendars";
+                                    }
+                                    font.pixelSize: 13; color: Theme.surfaceText
+                                    Layout.fillWidth: true
+                                }
+
+                                DankIcon { name: "expand_more"; size: 16; color: Theme.surfaceVariantText }
+                            }
+
+                            MouseArea {
+                                anchors.fill: parent
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: calPopup.open()
+                            }
+
+                            Popup {
+                                id: calPopup
+                                x: 0
+                                y: calDropdown.height + 2
+                                width: calDropdown.width
+                                padding: 4
+                                closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutsideParent
+
+                                background: Rectangle {
+                                    color: Theme.surfaceContainerHigh
+                                    radius: Appearance.rounding.small
+                                    border.color: Theme.outline; border.width: 1
+                                }
+
+                                contentItem: ListView {
+                                    implicitHeight: Math.min(contentHeight, 180)
+                                    model: mainInstance ? mainInstance.calendars : []
+                                    clip: true
+
+                                    delegate: Rectangle {
+                                        width: ListView.view ? ListView.view.width : 0
+                                        height: 36
+                                        color: optMouse.containsMouse
+                                            ? Theme.withAlpha(Theme.primary, 0.15) : "transparent"
+                                        radius: 4
+
+                                        RowLayout {
+                                            anchors { fill: parent; leftMargin: 8; rightMargin: 8 }
+                                            spacing: 8
+                                            Rectangle {
+                                                width: 12; height: 12; radius: 6
+                                                color: modelData.color ? modelData.color : Theme.primary
+                                            }
+                                            StyledText {
+                                                text: modelData.name
+                                                font.pixelSize: 13; color: Theme.surfaceText
+                                                Layout.fillWidth: true
+                                            }
+                                        }
+
+                                        MouseArea {
+                                            id: optMouse
+                                            anchors.fill: parent
+                                            hoverEnabled: true
+                                            onClicked: {
+                                                root.formCalIndex = index;
+                                                calPopup.close();
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        // ── Status / error ──
+                        StyledText {
+                            visible: mainInstance ? mainInstance.createEventStatus !== "" : false
+                            text: mainInstance ? mainInstance.createEventStatus : ""
+                            font.pixelSize: 11
+                            color: (mainInstance && mainInstance.createEventStatus.startsWith("Error"))
+                                ? Theme.error : Theme.surfaceVariantText
+                            wrapMode: Text.WordWrap
+                            Layout.fillWidth: true
+                        }
+
+                        // ── Buttons ──
+                        RowLayout {
+                            Layout.fillWidth: true
+                            spacing: Appearance.spacing.small
+                            Item { Layout.fillWidth: true }
+
+                            Rectangle {
+                                width: 90; height: 34; radius: Appearance.rounding.small
+                                color: Theme.withAlpha(Theme.surfaceContainerHigh, 0.8)
+                                border.color: Theme.outline; border.width: 1
+                                StyledText {
+                                    anchors.centerIn: parent; text: "Cancel"
+                                    font.pixelSize: 13; color: Theme.surfaceText
+                                }
+                                MouseArea {
+                                    anchors.fill: parent; cursorShape: Qt.PointingHandCursor
+                                    onClicked: { if (mainInstance) mainInstance.showNewEventForm = false; }
+                                }
+                            }
+
+                            Rectangle {
+                                width: 90; height: 34; radius: Appearance.rounding.small
+                                color: formTitleField.fieldText.trim() !== ""
+                                    ? Theme.primary : Theme.withAlpha(Theme.primary, 0.4)
+                                StyledText {
+                                    anchors.centerIn: parent; text: "Create"
+                                    font.pixelSize: 13; font.weight: Font.Bold
+                                    color: Theme.onPrimary
+                                }
+                                MouseArea {
+                                    anchors.fill: parent; cursorShape: Qt.PointingHandCursor
+                                    onClicked: {
+                                        if (!mainInstance) return;
+                                        var title = formTitleField.fieldText.trim();
+                                        if (title === "") return;
+                                        var cals = mainInstance.calendars;
+                                        var uid = (cals && cals.length > root.formCalIndex)
+                                            ? cals[root.formCalIndex].uid : "";
+                                        mainInstance.createEvent(
+                                            title,
+                                            Qt.formatDate(root.formSelectedDate, "yyyy-MM-dd"),
+                                            formStartField.fieldText,
+                                            formEndField.fieldText,
+                                            uid
+                                        );
                                     }
                                 }
                             }
