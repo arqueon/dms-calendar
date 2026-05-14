@@ -2,7 +2,7 @@
 
 A comprehensive, Material 3 styled weekly calendar widget for Dank Material Shell, ported and enhanced from the Noctalia Shell ecosystem. It integrates natively with **Evolution Data Server (EDS)** to sync your local and cloud calendars (Google, Nextcloud, CalDAV, etc.) directly into your desktop shell.
 
-<img width="1084" height="802" alt="image" src="https://github.com/user-attachments/assets/78e2c45b-4e59-4c15-92e1-e75d3ed8b0e2" />
+<img width="1084" height="802" alt="image" src="https://github.com/user-attachments/assets/cb3352b0-addb-43a4-a89c-b3ce011a29f0" />
 
 ## Features
 
