@@ -10,8 +10,7 @@ Item {
     id: root
 
     property var mainInstance: null
-    
-    // Dimensiones fijas para el Popout
+
     implicitWidth: 900
     implicitHeight: 650
     width: 900
@@ -20,17 +19,19 @@ Item {
     property real topHeaderHeight: 60
     property real hourHeight: (mainInstance ? mainInstance.hourHeight : 50)
     property real timeColumnWidth: 65
-    property real daySpacing: 1
+
+    readonly property string currentView: (mainInstance ? mainInstance.currentView : "week")
+    readonly property int colCount: (mainInstance ? mainInstance.viewColumnCount : 7)
 
     function scrollToCurrentTime() {
         if (!mainInstance || !calendarFlickable)
-            return ;
-
+            return;
         var now = new Date();
         var today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        var weekStart = new Date(mainInstance.weekStart);
-        var weekEnd = new Date(weekStart.getFullYear(), weekStart.getMonth(), weekStart.getDate() + 7);
-        if (today >= weekStart && today < weekEnd) {
+        var vStart = new Date(mainInstance.weekStart);
+        var vEnd = new Date(vStart);
+        vEnd.setDate(vEnd.getDate() + root.colCount);
+        if (today >= vStart && today < vEnd) {
             var currentHour = now.getHours() + now.getMinutes() / 60;
             var scrollPos = (currentHour * hourHeight) - (calendarFlickable.height / 2);
             var maxScroll = Math.max(0, (24 * hourHeight) - calendarFlickable.height);
@@ -41,10 +42,9 @@ Item {
     Component.onCompleted: {
         if (mainInstance)
             mainInstance.initializePlugin();
-
         Qt.callLater(root.scrollToCurrentTime);
     }
-    
+
     onVisibleChanged: {
         if (visible && mainInstance) {
             mainInstance.loadEvents();
@@ -53,7 +53,6 @@ Item {
         }
     }
 
-    // Fondo principal con transparencia coordinada con el sistema
     Rectangle {
         id: panelContainer
         anchors.fill: parent
@@ -65,21 +64,21 @@ Item {
             anchors.margins: Appearance.spacing.normal
             spacing: Appearance.spacing.normal
 
-            // Header Section
+            // ── Header ────────────────────────────────────────────────────────
             Rectangle {
-                id: header
                 Layout.fillWidth: true
                 Layout.preferredHeight: topHeaderHeight
                 color: Theme.withAlpha(Theme.surfaceContainerHigh, 0.4)
                 radius: Appearance.rounding.normal
 
                 RowLayout {
-                    anchors.margins: Appearance.spacing.normal
                     anchors.fill: parent
+                    anchors.margins: Appearance.spacing.normal
+                    spacing: Appearance.spacing.small
 
                     DankIcon {
-                        name: "calendar_view_week"
-                        size: 32
+                        name: "calendar_month"
+                        size: 26
                         color: Theme.primary
                     }
 
@@ -88,31 +87,21 @@ Item {
                         spacing: 0
 
                         StyledText {
-                            text: "Weekly Calendar"
-                            font.pixelSize: 18
+                            text: (mainInstance ? mainInstance.monthRangeText : "Calendar")
+                            font.pixelSize: 15
                             font.weight: Font.Bold
                             color: Theme.surfaceText
                         }
 
                         RowLayout {
-                            spacing: Appearance.spacing.small
-
-                            StyledText {
-                                text: (mainInstance ? mainInstance.monthRangeText : "")
-                                font.pixelSize: 12
-                                color: Theme.surfaceVariantText
-                            }
-
+                            spacing: 4
                             Rectangle {
-                                Layout.preferredWidth: 8
-                                Layout.preferredHeight: 8
-                                radius: 4
+                                width: 6; height: 6; radius: 3
                                 color: (mainInstance && mainInstance.isLoading ? Theme.error : Theme.primary)
                             }
-
                             StyledText {
                                 text: (mainInstance ? mainInstance.syncStatus : "")
-                                font.pixelSize: 12
+                                font.pixelSize: 11
                                 color: Theme.surfaceVariantText
                             }
                         }
@@ -120,26 +109,72 @@ Item {
 
                     Item { Layout.fillWidth: true }
 
+                    // ── View selector ─────────────────────────────────────────
+                    Row {
+                        spacing: 3
+
+                        Repeater {
+                            model: [
+                                { label: "Week",   view: "week"   },
+                                { label: "4D",     view: "4days"  },
+                                { label: "Day",    view: "day"    },
+                                { label: "Agenda", view: "agenda" },
+                                { label: "Month",  view: "month"  }
+                            ]
+
+                            Rectangle {
+                                property bool active: root.currentView === modelData.view
+                                width: viewLabel.implicitWidth + 14
+                                height: 26
+                                radius: Appearance.rounding.small
+                                color: active
+                                    ? Theme.primary
+                                    : Theme.withAlpha(Theme.surfaceContainerHigh, 0.7)
+
+                                StyledText {
+                                    id: viewLabel
+                                    anchors.centerIn: parent
+                                    text: modelData.label
+                                    font.pixelSize: 11
+                                    font.weight: active ? Font.Bold : Font.Normal
+                                    color: active ? Theme.onPrimary : Theme.surfaceText
+                                }
+
+                                MouseArea {
+                                    anchors.fill: parent
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: { if (mainInstance) mainInstance.setView(modelData.view); }
+                                }
+                            }
+                        }
+                    }
+
+                    // ── Navigation buttons ────────────────────────────────────
                     RowLayout {
                         spacing: Appearance.spacing.small
                         DankActionButton {
                             iconName: "chevron_left"
-                            buttonSize: 32
+                            buttonSize: 30
                             onClicked: { if (mainInstance) mainInstance.navigateWeek(-7); }
                         }
                         DankActionButton {
                             iconName: "today"
-                            buttonSize: 32
-                            onClicked: { if (mainInstance) { mainInstance.goToToday(); Qt.callLater(root.scrollToCurrentTime); } }
+                            buttonSize: 30
+                            onClicked: {
+                                if (mainInstance) {
+                                    mainInstance.goToToday();
+                                    Qt.callLater(root.scrollToCurrentTime);
+                                }
+                            }
                         }
                         DankActionButton {
                             iconName: "chevron_right"
-                            buttonSize: 32
+                            buttonSize: 30
                             onClicked: { if (mainInstance) mainInstance.navigateWeek(7); }
                         }
                         DankActionButton {
                             iconName: "refresh"
-                            buttonSize: 32
+                            buttonSize: 30
                             enabled: (mainInstance ? !mainInstance.isLoading : false)
                             onClicked: { if (mainInstance) mainInstance.loadEvents(); }
                         }
@@ -147,7 +182,7 @@ Item {
                 }
             }
 
-            // Grid de Calendario
+            // ── Content area ──────────────────────────────────────────────────
             Rectangle {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
@@ -155,126 +190,461 @@ Item {
                 radius: Appearance.rounding.normal
                 clip: true
 
-                DankFlickable {
-                    id: calendarFlickable
+                // ── TIME GRID (week / 4days / day) ────────────────────────────
+                ColumnLayout {
                     anchors.fill: parent
-                    contentHeight: 24 * root.hourHeight
-                    clip: true
+                    spacing: 0
+                    visible: root.currentView === "week" || root.currentView === "4days" || root.currentView === "day"
 
-                    Item {
-                        id: gridContainer
-                        width: parent.width
-                        height: 24 * root.hourHeight
+                    // Day-of-week sticky header
+                    Row {
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: 36
 
+                        // Spacer for time column
+                        Item { width: root.timeColumnWidth; height: 36 }
+
+                        // Day name + number cells
                         Row {
-                            anchors.fill: parent
-                            
-                            // Time Column
-                            Column {
-                                width: root.timeColumnWidth
-                                Repeater {
-                                    model: 24
-                                    Rectangle {
-                                        width: root.timeColumnWidth
-                                        height: root.hourHeight
-                                        color: "transparent"
+                            width: parent.width - root.timeColumnWidth
+                            height: 36
+
+                            Repeater {
+                                model: root.colCount
+
+                                Item {
+                                    width: parent.width / root.colCount
+                                    height: 36
+
+                                    property var dayDate: (mainInstance && mainInstance.viewDates.length > index
+                                        ? mainInstance.viewDates[index] : new Date())
+
+                                    property bool isToday: {
+                                        var n = new Date();
+                                        return dayDate.getFullYear() === n.getFullYear()
+                                            && dayDate.getMonth() === n.getMonth()
+                                            && dayDate.getDate() === n.getDate();
+                                    }
+
+                                    ColumnLayout {
+                                        anchors.centerIn: parent
+                                        spacing: 1
+
                                         StyledText {
-                                            text: (index < 10 ? "0" : "") + index + ":00"
-                                            anchors.right: parent.right
-                                            anchors.rightMargin: 8
-                                            anchors.verticalCenter: parent.top
+                                            Layout.alignment: Qt.AlignHCenter
+                                            text: I18n.locale().dayName(dayDate.getDay(), Locale.NarrowFormat)
                                             font.pixelSize: 10
-                                            color: Theme.surfaceVariantText
+                                            color: isToday ? Theme.primary : Theme.surfaceVariantText
+                                        }
+
+                                        Rectangle {
+                                            Layout.alignment: Qt.AlignHCenter
+                                            width: 22; height: 22; radius: 11
+                                            color: isToday ? Theme.primary : "transparent"
+
+                                            StyledText {
+                                                anchors.centerIn: parent
+                                                text: dayDate.getDate().toString()
+                                                font.pixelSize: 11
+                                                font.weight: isToday ? Font.Bold : Font.Normal
+                                                color: isToday ? Theme.onPrimary : Theme.surfaceText
+                                            }
                                         }
                                     }
                                 }
                             }
+                        }
+                    }
 
-                            // Days Grid
-                            Item {
-                                width: parent.width - root.timeColumnWidth
-                                height: parent.height
+                    // Scrollable hour grid
+                    DankFlickable {
+                        id: calendarFlickable
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        contentHeight: 24 * root.hourHeight
+                        clip: true
 
-                                // Lineas Horizontales
-                                Repeater {
-                                    model: 25
-                                    Rectangle {
-                                        width: parent.width; height: 1
-                                        y: index * root.hourHeight
-                                        color: Theme.outline
-                                        opacity: 0.2
-                                    }
-                                }
+                        Item {
+                            width: parent.width
+                            height: 24 * root.hourHeight
 
-                                // Columnas de Días
-                                Row {
-                                    anchors.fill: parent
+                            Row {
+                                anchors.fill: parent
+
+                                // Time labels
+                                Column {
+                                    width: root.timeColumnWidth
                                     Repeater {
-                                        model: 7
+                                        model: 24
                                         Rectangle {
-                                            width: (parent.width / 7)
-                                            height: parent.height
+                                            width: root.timeColumnWidth
+                                            height: root.hourHeight
                                             color: "transparent"
-                                            border.color: Theme.outline
-                                            border.width: 0.5
-                                            opacity: 0.3
+                                            StyledText {
+                                                text: (index < 10 ? "0" : "") + index + ":00"
+                                                anchors.right: parent.right
+                                                anchors.rightMargin: 8
+                                                anchors.verticalCenter: parent.top
+                                                font.pixelSize: 10
+                                                color: Theme.surfaceVariantText
+                                            }
                                         }
                                     }
                                 }
 
-                                // Eventos con Soporte de Superposición
-                                Repeater {
-                                    model: (mainInstance ? mainInstance.eventsModel : null)
-                                    delegate: Rectangle {
-                                        property var overlap: (mainInstance && mainInstance.overlappingEventsData && mainInstance.overlappingEventsData[index] ? mainInstance.overlappingEventsData[index] : { lane: 0, totalLanes: 1 })
-                                        property int dayIdx: (mainInstance ? mainInstance.getDayIndexForDate(model.startTime) : -1)
-                                        property real colWidth: (parent.width / 7)
-                                        
-                                        visible: dayIdx >= 0 && dayIdx < 7
-                                        x: dayIdx * colWidth + (overlap.lane / overlap.totalLanes) * colWidth + 2
-                                        y: (model.startTime.getHours() + model.startTime.getMinutes()/60) * root.hourHeight
-                                        width: (colWidth / overlap.totalLanes) - 4
-                                        height: Math.max(20, ((model.endTime - model.startTime) / 3600000) * root.hourHeight)
-                                        
-                                        color: (model.color !== "" ? Theme.withAlpha(Qt.color(model.color), 0.45) : Theme.primaryContainer)
-                                        radius: 4
-                                        border.color: (model.color !== "" ? model.color : Theme.primary)
-                                        clip: true
+                                // Day columns + events
+                                Item {
+                                    width: parent.width - root.timeColumnWidth
+                                    height: parent.height
 
-                                        Column {
-                                            anchors.fill: parent; anchors.margins: 4
-                                            spacing: 2
-                                            StyledText {
-                                                text: model.title; font.pixelSize: 11; font.weight: Font.Bold
-                                                color: Theme.surfaceText; elide: Text.ElideRight; width: parent.width
-                                            }
-                                            StyledText {
-                                                text: Qt.formatTime(model.startTime, "hh:mm"); font.pixelSize: 9
-                                                color: Theme.surfaceText; opacity: 0.9
-                                            }
-                                        }
-                                        
-                                        // Tooltip básico
-                                        ToolTip.visible: mouseArea.containsMouse
-                                        ToolTip.text: model.title + "\n" + model.location + (model.description ? "\n\n" + model.description : "")
-                                        
-                                        MouseArea {
-                                            id: mouseArea
-                                            anchors.fill: parent
-                                            hoverEnabled: true
+                                    // Horizontal hour lines
+                                    Repeater {
+                                        model: 25
+                                        Rectangle {
+                                            width: parent.width; height: 1
+                                            y: index * root.hourHeight
+                                            color: Theme.outline
+                                            opacity: 0.2
                                         }
                                     }
+
+                                    // Vertical day separators
+                                    Row {
+                                        anchors.fill: parent
+                                        Repeater {
+                                            model: root.colCount
+                                            Rectangle {
+                                                width: parent.width / root.colCount
+                                                height: parent.height
+                                                color: "transparent"
+                                                border.color: Theme.outline
+                                                border.width: 0.5
+                                                opacity: 0.3
+                                            }
+                                        }
+                                    }
+
+                                    // Timed events
+                                    Repeater {
+                                        model: (mainInstance ? mainInstance.eventsModel : null)
+                                        delegate: Rectangle {
+                                            property var overlap: (mainInstance && mainInstance.overlappingEventsData && mainInstance.overlappingEventsData[index]
+                                                ? mainInstance.overlappingEventsData[index]
+                                                : { lane: 0, totalLanes: 1 })
+                                            property int dayIdx: (mainInstance ? mainInstance.getDayIndexForDate(model.startTime) : -1)
+                                            property real colWidth: parent.width / root.colCount
+
+                                            visible: dayIdx >= 0 && dayIdx < root.colCount
+                                            x: dayIdx * colWidth + (overlap.lane / overlap.totalLanes) * colWidth + 2
+                                            y: (model.startTime.getHours() + model.startTime.getMinutes() / 60) * root.hourHeight
+                                            width: (colWidth / overlap.totalLanes) - 4
+                                            height: Math.max(20, ((model.endTime - model.startTime) / 3600000) * root.hourHeight)
+
+                                            color: (model.color !== "" ? Theme.withAlpha(Qt.color(model.color), 0.45) : Theme.primaryContainer)
+                                            radius: 4
+                                            border.color: (model.color !== "" ? model.color : Theme.primary)
+                                            clip: true
+
+                                            Column {
+                                                anchors.fill: parent
+                                                anchors.margins: 4
+                                                spacing: 2
+                                                StyledText {
+                                                    text: model.title
+                                                    font.pixelSize: 11; font.weight: Font.Bold
+                                                    color: Theme.surfaceText
+                                                    elide: Text.ElideRight; width: parent.width
+                                                }
+                                                StyledText {
+                                                    text: Qt.formatTime(model.startTime, "hh:mm")
+                                                    font.pixelSize: 9
+                                                    color: Theme.surfaceText; opacity: 0.9
+                                                }
+                                            }
+
+                                            ToolTip.visible: evtMouse.containsMouse
+                                            ToolTip.text: model.title + "\n" + model.location +
+                                                          (model.description ? "\n\n" + model.description : "")
+
+                                            MouseArea {
+                                                id: evtMouse
+                                                anchors.fill: parent
+                                                hoverEnabled: true
+                                                cursorShape: Qt.PointingHandCursor
+                                                onClicked: { if (mainInstance) mainInstance.openEventInCalendar(model.calendarUid, model.id); }
+                                            }
+                                        }
+                                    }
+
+                                    // Current-time indicator
+                                    Rectangle {
+                                        property var now: new Date()
+                                        property int curDay: (mainInstance ? mainInstance.getDayIndexForDate(now) : -1)
+                                        visible: curDay >= 0 && curDay < root.colCount
+                                        x: curDay * (parent.width / root.colCount)
+                                        y: (now.getHours() + now.getMinutes() / 60) * root.hourHeight
+                                        width: parent.width / root.colCount
+                                        height: 2
+                                        color: Theme.error
+                                        z: 5
+                                    }
                                 }
-                                
-                                // Indicador de hora actual
+                            }
+                        }
+                    }
+                }
+
+                // ── AGENDA VIEW ───────────────────────────────────────────────
+                Item {
+                    anchors.fill: parent
+                    visible: root.currentView === "agenda"
+
+                    // Empty-state message
+                    ColumnLayout {
+                        anchors.centerIn: parent
+                        spacing: Appearance.spacing.small
+                        visible: (mainInstance ? mainInstance.agendaEvents.count === 0 : true)
+
+                        DankIcon {
+                            name: "event_available"
+                            size: 48
+                            color: Theme.surfaceVariantText
+                            Layout.alignment: Qt.AlignHCenter
+                        }
+                        StyledText {
+                            text: "No upcoming events"
+                            font.pixelSize: 14
+                            color: Theme.surfaceVariantText
+                            Layout.alignment: Qt.AlignHCenter
+                        }
+                    }
+
+                    ListView {
+                        anchors.fill: parent
+                        anchors.margins: Appearance.spacing.normal
+                        model: (mainInstance ? mainInstance.agendaEvents : null)
+                        clip: true
+                        spacing: Appearance.spacing.small
+
+                        delegate: Rectangle {
+                            width: parent ? parent.width : 0
+                            height: agendaContent.implicitHeight + Appearance.spacing.normal
+                            color: Theme.withAlpha(Theme.surfaceContainerHigh, 0.3)
+                            radius: Appearance.rounding.small
+
+                            ToolTip.visible: agendaMouse.containsMouse && model.description !== ""
+                            ToolTip.delay: 600
+                            ToolTip.text: model.description
+
+                            MouseArea {
+                                id: agendaMouse
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: { if (mainInstance) mainInstance.openEventInCalendar(model.calendarUid, model.id); }
+                            }
+
+                            RowLayout {
+                                id: agendaContent
+                                anchors {
+                                    left: parent.left; right: parent.right
+                                    top: parent.top
+                                    margins: Appearance.spacing.small
+                                }
+                                spacing: Appearance.spacing.small
+
                                 Rectangle {
-                                    property var now: new Date()
-                                    property int curDay: (mainInstance ? mainInstance.getDayIndexForDate(now) : -1)
-                                    visible: curDay >= 0 && curDay < 7
-                                    x: curDay * (parent.width / 7)
-                                    y: (now.getHours() + now.getMinutes()/60) * root.hourHeight
-                                    width: (parent.width / 7); height: 2
-                                    color: Theme.error; z: 5
+                                    width: 4
+                                    height: agendaText.implicitHeight
+                                    radius: 2
+                                    color: (model.color !== "" ? model.color : Theme.primary)
+                                }
+
+                                ColumnLayout {
+                                    id: agendaText
+                                    Layout.fillWidth: true
+                                    spacing: 2
+
+                                    StyledText {
+                                        text: model.title
+                                        font.pixelSize: 13; font.weight: Font.Medium
+                                        color: Theme.surfaceText
+                                        elide: Text.ElideRight
+                                        Layout.fillWidth: true
+                                    }
+
+                                    StyledText {
+                                        text: model.allDay
+                                            ? Qt.formatDate(model.startTime, "ddd d MMM") + " · All day"
+                                            : Qt.formatDate(model.startTime, "ddd d MMM") + " · " +
+                                              Qt.formatTime(model.startTime, "hh:mm") + " – " +
+                                              Qt.formatTime(model.endTime, "hh:mm")
+                                        font.pixelSize: 11
+                                        color: Theme.surfaceVariantText
+                                    }
+
+                                    StyledText {
+                                        text: model.location
+                                        font.pixelSize: 11
+                                        color: Theme.surfaceVariantText
+                                        visible: model.location !== ""
+                                        elide: Text.ElideRight
+                                        Layout.fillWidth: true
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // ── MONTH VIEW ────────────────────────────────────────────────
+                Item {
+                    anchors.fill: parent
+                    visible: root.currentView === "month"
+
+                    ColumnLayout {
+                        anchors.fill: parent
+                        anchors.margins: Appearance.spacing.small
+                        spacing: 2
+
+                        // Day-of-week header row
+                        Row {
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: 22
+
+                            Repeater {
+                                model: 7
+                                StyledText {
+                                    width: parent.width / 7
+                                    text: I18n.locale().dayName(
+                                        (index + (mainInstance ? mainInstance.firstDayOfWeek : 1)) % 7,
+                                        Locale.NarrowFormat)
+                                    horizontalAlignment: Text.AlignHCenter
+                                    font.pixelSize: 11; font.weight: Font.Bold
+                                    color: Theme.surfaceVariantText
+                                }
+                            }
+                        }
+
+                        // 6×7 month grid
+                        GridLayout {
+                            Layout.fillWidth: true
+                            Layout.fillHeight: true
+                            columns: 7
+                            rowSpacing: 2
+                            columnSpacing: 2
+
+                            Repeater {
+                                model: (mainInstance && root.currentView === "month"
+                                    ? mainInstance.monthGridDates.length : 0)
+
+                                Rectangle {
+                                    property var cellDate: (mainInstance && mainInstance.monthGridDates.length > index
+                                        ? mainInstance.monthGridDates[index] : new Date())
+
+                                    property bool isCurrentMonth: cellDate.getMonth() ===
+                                        (mainInstance ? mainInstance.currentDate.getMonth() : -1)
+
+                                    property bool isToday: {
+                                        var n = new Date();
+                                        return cellDate.getFullYear() === n.getFullYear()
+                                            && cellDate.getMonth() === n.getMonth()
+                                            && cellDate.getDate() === n.getDate();
+                                    }
+
+                                    // Re-evaluate when events change
+                                    property var dayEvents: {
+                                        var _dep = mainInstance ? mainInstance.allRawEvents.length : 0;
+                                        return mainInstance ? mainInstance.getEventsForDay(cellDate) : [];
+                                    }
+
+                                    Layout.fillWidth: true
+                                    Layout.fillHeight: true
+
+                                    color: isToday
+                                        ? Theme.withAlpha(Theme.primary, 0.15)
+                                        : isCurrentMonth
+                                            ? Theme.withAlpha(Theme.surfaceContainerHigh, 0.35)
+                                            : Theme.withAlpha(Theme.surfaceContainer, 0.1)
+
+                                    radius: Appearance.rounding.small
+                                    border.color: isToday ? Theme.primary : "transparent"
+                                    border.width: isToday ? 1 : 0
+
+                                    ColumnLayout {
+                                        anchors.fill: parent
+                                        anchors.margins: 3
+                                        spacing: 1
+
+                                        StyledText {
+                                            Layout.alignment: Qt.AlignRight
+                                            text: cellDate.getDate().toString()
+                                            font.pixelSize: 11
+                                            font.weight: isToday ? Font.Bold : Font.Normal
+                                            color: isToday ? Theme.primary
+                                                : isCurrentMonth ? Theme.surfaceText
+                                                : Theme.surfaceVariantText
+                                        }
+
+                                        Repeater {
+                                            model: Math.min(dayEvents.length, 3)
+                                            Rectangle {
+                                                property var ev: dayEvents[index]
+                                                Layout.fillWidth: true
+                                                height: 15
+                                                radius: 3
+                                                color: ev.color !== ""
+                                                    ? Theme.withAlpha(Qt.color(ev.color), 0.75)
+                                                    : Theme.withAlpha(Theme.primary, 0.75)
+                                                clip: true
+
+                                                StyledText {
+                                                    anchors {
+                                                        left: parent.left; right: parent.right
+                                                        verticalCenter: parent.verticalCenter
+                                                        leftMargin: 3; rightMargin: 3
+                                                    }
+                                                    text: ev.title
+                                                    font.pixelSize: 10
+                                                    color: Theme.surfaceText
+                                                    elide: Text.ElideRight
+                                                    wrapMode: Text.NoWrap
+                                                    maximumLineCount: 1
+                                                }
+
+                                                ToolTip.visible: pillMouse.containsMouse
+                                                ToolTip.delay: 600
+                                                ToolTip.text: {
+                                                    var t = ev.title;
+                                                    t += "\n" + (ev.allDay
+                                                        ? Qt.formatDate(ev.startTime, "ddd d MMM") + " · All day"
+                                                        : Qt.formatDate(ev.startTime, "ddd d MMM") + " · " +
+                                                          Qt.formatTime(ev.startTime, "hh:mm") + " – " +
+                                                          Qt.formatTime(ev.endTime, "hh:mm"));
+                                                    if (ev.location !== "") t += "\n" + ev.location;
+                                                    if (ev.description !== "") t += "\n\n" + ev.description;
+                                                    return t;
+                                                }
+
+                                                MouseArea {
+                                                    id: pillMouse
+                                                    anchors.fill: parent
+                                                    hoverEnabled: true
+                                                    cursorShape: Qt.PointingHandCursor
+                                                    onClicked: { if (mainInstance) mainInstance.openEventInCalendar(ev.calendarUid, ev.uid); }
+                                                }
+                                            }
+                                        }
+
+                                        StyledText {
+                                            visible: dayEvents.length > 3
+                                            text: "+" + (dayEvents.length - 3) + " more"
+                                            font.pixelSize: 10
+                                            color: Theme.surfaceVariantText
+                                        }
+
+                                        Item { Layout.fillHeight: true }
+                                    }
                                 }
                             }
                         }

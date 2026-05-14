@@ -10,7 +10,7 @@
     ],
     "component": "./WeeklyCalendar.qml",
     "settings": "./WeeklyCalendarSettings.qml",
-    "icon": "calendar_view_week",
+    "icon": "calendar_month",
     "permissions": [
         "settings_read",
         "settings_write",

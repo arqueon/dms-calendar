@@ -1,61 +1,96 @@
 # Calendar for Dank Material Shell (DMS)
 
-A comprehensive, Material 3 styled weekly calendar widget for Dank Material Shell, ported and enhanced from the Noctalia Shell ecosystem. It integrates natively with **Evolution Data Server (EDS)** to sync your local and cloud calendars (Google, Nextcloud, CalDAV, etc.) directly into your desktop shell.
+A Material 3 styled calendar widget for Dank Material Shell, ported and enhanced from the Noctalia Shell ecosystem. It integrates natively with **Evolution Data Server (EDS)** to sync your local and cloud calendars (Google, Nextcloud, CalDAV, etc.) directly into your desktop shell.
 
 <img width="1084" height="802" alt="image" src="https://github.com/user-attachments/assets/cb3352b0-addb-43a4-a89c-b3ce011a29f0" />
 
 ## Features
 
-- **Weekly Grid View**: Clear 7-day visualization of your schedule.
+### Five Calendar Views
+
+Switch between views using the buttons in the header bar:
+
+| View | Description |
+|------|-------------|
+| **Week** | Classic 7-column time grid showing the full current week. |
+| **4 Days** | Compact time grid showing 4 days starting from the current date — useful on narrower displays or to focus on the near future. |
+| **Day** | Single-column time grid for the selected day, with maximum space for event detail. |
+| **Agenda** | Chronological flat list of upcoming events for the next 60 days, grouped with date and time. Ideal for a quick overview without the grid. |
+| **Month** | Traditional monthly calendar grid (6 weeks × 7 days). Each day cell shows up to 3 event pills with their title and calendar colour, plus a `+N more` indicator if there are additional events. |
+
+Navigation arrows in the header move by the appropriate unit for each view (±1 day, ±4 days, ±1 week or ±1 month). The **Today** button always returns to the current date regardless of view.
+
+### Other Features
+
 - **DMS Native Aesthetics**: Full support for DMS Theme tokens, including dynamic transparency and background blur.
-- **Smart Overlap Management**: Automatically detects concurrent events and displays them side-by-side (lanes) for maximum readability.
-- **Color Distinguishability**: Fetches and uses the specific colors defined in your Evolution/GNOME calendars.
-- **Interactive**: Click any event to open it in GNOME Calendar or Evolution.
-- **Persistent Cache**: Instant loading using local cache while background synchronization happens.
-- **Integrated Settings**: Configure first day of the week, 12h/24h format, and UI opacities via DMS Settings.
+- **Smart Overlap Management**: Concurrent events are displayed side-by-side (lanes) automatically.
+- **Calendar Colors**: Each event uses the color defined in your Evolution/GNOME calendars.
+- **Click to Open**: Click any event to open it directly in Evolution (opens the specific event dialog) or in GNOME Calendar as a fallback.
+- **Tooltips**: Hover over any event to see its full title, time, location and description.
+- **Persistent Cache**: Instant loading from local cache while background sync happens.
+- **Integrated Settings**: Configure first day of the week, 12h/24h format and UI opacities via DMS Settings.
 
 ## Requirements
 
-The plugin requires the following system dependencies:
+### Mandatory
 
 - **Dank Material Shell** >= 1.2.0
-- **evolution-data-server**: Backend service for calendar data.
-- **python-dateutil**: Python library for recurrence handling.
-- **libical**: (ICalGLib) Introspection libraries for calendar parsing.
+- **evolution-data-server**: Backend service that provides the calendar data.
+- **python-dateutil**: Python library used for recurrence rule handling.
+- **libical**: ICalGLib introspection libraries for calendar parsing.
 
-### Arch / CachyOS Installation:
 ```bash
+# Arch / CachyOS
 sudo pacman -S evolution-data-server python-dateutil libical
 ```
 
+### Optional — Calendar Client
+
+When you click an event, the plugin tries to open it in a calendar app. Two options:
+
+| App | Behaviour | Install |
+|-----|-----------|---------|
+| **Evolution** *(recommended)* | Opens the specific event dialog directly via `calendar://?source-uid=…&comp-uid=…` | `sudo pacman -S evolution` |
+| **GNOME Calendar** *(fallback)* | Opens the app at today's view (no deep-link to the specific event) | `sudo pacman -S gnome-calendar` |
+
+If neither is installed, the click is silently ignored. If both are installed, Evolution takes priority (you can change the command in `WeeklyCalendar.qml` → `openCalendarProcess`).
+
 ## Calendar Configuration
 
-This plugin reads data from the Evolution Data Server. You can manage your calendars in several ways:
+The plugin reads data from Evolution Data Server. You can add calendars in several ways:
 
-1.  **GNOME Online Accounts**: If you use GNOME or have `gnome-control-center` installed, add your Google, Microsoft, or Nextcloud accounts there.
-2.  **Evolution**: Install the `evolution` mail/calendar client to add CalDAV, ICS, or Webcal links.
-3.  **Standalone GOA (without full GNOME)**: You can install `gnome-online-accounts` and `gnome-control-center` to manage accounts in other window managers like Niri.
+1. **GNOME Online Accounts**: Add Google, Microsoft or Nextcloud accounts via `gnome-control-center` → Online Accounts.
+2. **Evolution client**: Add CalDAV, ICS or Webcal sources directly in the Evolution app.
+3. **Standalone GOA** (without full GNOME): Install `gnome-online-accounts` + `gnome-control-center` to manage accounts in other window managers (e.g. Niri).
 
-Once an account is enabled in your system's "Online Accounts" or Evolution, this plugin will detect and sync it automatically.
+Once an account is enabled, the plugin detects and syncs it automatically on next load.
 
 ## Installation
 
-1.  Clone this repository into your DMS plugins directory:
-    ```bash
-    git clone https://github.com/yourusername/dms-weekly-calendar ~/.config/DankMaterialShell/plugins/weeklyCalendar
-    ```
-2.  Enable the plugin in DMS Settings or add it to your `plugin_settings.json`.
-3.  Add the widget to your bar in `settings.json`.
+1. Clone into your DMS plugins directory:
+   ```bash
+   git clone https://github.com/arqueon/dms-calendar ~/.config/DankMaterialShell/plugins/weeklyCalendar
+   ```
+2. Enable the plugin in DMS Settings or in `plugin_settings.json`:
+   ```json
+   "weeklyCalendar": { "enabled": true }
+   ```
+3. Add the widget to your bar in `settings.json`:
+   ```json
+   { "id": "weeklyCalendar", "enabled": true }
+   ```
 
 ## Credits & Attribution
 
-This plugin is a substantial port and enhancement of the [Weekly Calendar](https://github.com/noctalia-dev/noctalia-plugins/tree/main/weekly-calendar) plugin by **dodaars** for Noctalia Shell. 
+This plugin is a port and enhancement of the [Weekly Calendar](https://github.com/noctalia-dev/noctalia-plugins/tree/main/weekly-calendar) plugin by **dodaars** for Noctalia Shell.
 
-Key changes for DMS include:
-- Complete rewrite of styling to use DMS `Theme` and `Appearance` singletons.
+Key changes for DMS:
+- Five-view selector (Week / 4 Days / Day / Agenda / Month).
+- Complete restyling to use DMS `Theme` and `Appearance` singletons.
 - Adaptation to DMS `PluginComponent` and `PluginSettings` architecture.
-- Implementation of `DankPopout` integration for the detail view.
+- `DankPopout` integration for the detail view.
 - Support for `ICalGLib 4.0` introspection.
+- Evolution deep-link on event click (`calendar://?source-uid=…&comp-uid=…`).
 
 ## License
 
