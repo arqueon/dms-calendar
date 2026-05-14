@@ -1,0 +1,20 @@
+{
+    "id": "weeklyCalendar",
+    "name": "Weekly Calendar",
+    "description": "A comprehensive weekly calendar with Evolution Data Server integration, ported from Noctalia.",
+    "version": "1.0.0",
+    "author": "dodaars (ported by ruben)",
+    "type": "widget",
+    "capabilities": [
+        "dankbar-widget"
+    ],
+    "component": "./WeeklyCalendar.qml",
+    "settings": "./WeeklyCalendarSettings.qml",
+    "icon": "calendar_view_week",
+    "permissions": [
+        "settings_read",
+        "settings_write",
+        "process"
+    ],
+    "requires": ">=1.2.0"
+}
