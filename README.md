@@ -59,4 +59,4 @@ Key changes for DMS include:
 
 ## License
 
-MIT
+GPL-3.0
