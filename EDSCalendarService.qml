@@ -21,6 +21,7 @@ QtObject {
 
     cacheFileView: FileView {
         path: root.cacheFile
+        atomicWrites: true
         onLoaded: {
             try {
                 var data = JSON.parse(text);
@@ -68,9 +69,9 @@ QtObject {
                 try {
                     var result = JSON.parse(text.trim());
                     root.calendars = result;
-                    root.saveCache();
                     if (result.length > 0)
-                        loadEvents();
+                        loadEvents(90, 60);
+                    root.saveCache();
 
                 } catch (e) {
                     root.lastError = "Failed to parse calendar list";
@@ -122,7 +123,12 @@ QtObject {
             "calendars": root.calendars,
             "lastUpdate": new Date().toISOString()
         };
-        cacheFileView.text = JSON.stringify(data);
+        // FileView.text is read-only; never let a cache write break the load chain
+        try {
+            cacheFileView.setText(JSON.stringify(data));
+        } catch (e) {
+            console.warn("[WeeklyCalendar] cache write failed:", e);
+        }
     }
 
     function init() {
