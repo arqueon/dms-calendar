@@ -7,14 +7,14 @@ import qs.Common
 import qs.Services
 import qs.Widgets
 import qs.Modules.Plugins
+import "./services" as Services
 
 PluginComponent {
     id: root
 
     // --- Services ---
-    EDSCalendarService {
-        id: calendarService
-    }
+    // Shared singleton: one poll loop and one cache writer for all bar instances
+    readonly property var calendarService: Services.EDSCalendarService
 
     // Expose calendar list for the new-event form
     property var calendars: (calendarService !== null ? calendarService.calendars : [])

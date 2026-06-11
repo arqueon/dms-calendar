@@ -1,9 +1,11 @@
+pragma Singleton
+
 import QtQuick
 import Quickshell
 import Quickshell.Io
 import qs.Common
 
-QtObject {
+Singleton {
     id: root
 
     property var events: ([])
@@ -11,7 +13,7 @@ QtObject {
     property bool available: false
     property string lastError: ""
     property var calendars: ([])
-    readonly property string scriptsDir: Qt.resolvedUrl("./scripts").toString().replace("file://", "")
+    readonly property string scriptsDir: Qt.resolvedUrl("../scripts").toString().replace("file://", "")
     readonly property string checkCalendarAvailableScript: scriptsDir + "/check-calendar.py"
     readonly property string listCalendarsScript: scriptsDir + "/list-calendars.py"
     readonly property string calendarEventsScript: scriptsDir + "/calendar-events.py"
@@ -131,7 +133,13 @@ QtObject {
         }
     }
 
+    property bool _initDone: false
+
     function init() {
+        // Singleton shared by every widget instance — only initialize once
+        if (_initDone)
+            return;
+        _initDone = true;
         availabilityCheckProcess.running = true;
     }
 
