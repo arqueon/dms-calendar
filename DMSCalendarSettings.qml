@@ -7,7 +7,7 @@ import qs.Modules.Plugins
 
 PluginSettings {
     id: root
-    pluginId: "weeklyCalendar"
+    pluginId: "dmsCalendar"
 
     // Forzamos un Column para que PluginSettings pueda calcular la altura total
     Column {

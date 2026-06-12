@@ -154,7 +154,7 @@ PluginComponent {
 
     ccDetailHeight: 600
     ccDetailContent: Component {
-        WeeklyCalendarPanel {
+        DMSCalendarPanel {
             mainInstance: root
         }
     }
@@ -187,7 +187,7 @@ PluginComponent {
     }
 
     popoutContent: Component {
-        WeeklyCalendarPanel {
+        DMSCalendarPanel {
             mainInstance: root
         }
     }
