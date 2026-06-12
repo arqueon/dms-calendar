@@ -18,7 +18,7 @@ Singleton {
     readonly property string listCalendarsScript: scriptsDir + "/list-calendars.py"
     readonly property string calendarEventsScript: scriptsDir + "/calendar-events.py"
     // --- Persistent cache ---
-    property string cacheFile: (typeof Paths !== "undefined") ? (Paths.strip(Paths.cache) + "/weeklyCalendar/calendar.json") : ""
+    property string cacheFile: (typeof Paths !== "undefined") ? (Paths.strip(Paths.cache) + "/dmsCalendar/calendar.json") : ""
     property FileView cacheFileView
 
     cacheFileView: FileView {
@@ -35,7 +35,7 @@ Singleton {
                     root.calendars = data.calendars;
 
             } catch (e) {
-                console.error("[WeeklyCalendar] Failed to parse cache:", e);
+                console.error("[DMSCalendar] Failed to parse cache:", e);
             }
         }
     }
@@ -130,7 +130,7 @@ Singleton {
         try {
             cacheFileView.setText(JSON.stringify(data));
         } catch (e) {
-            console.warn("[WeeklyCalendar] cache write failed:", e);
+            console.warn("[DMSCalendar] cache write failed:", e);
         }
     }
 

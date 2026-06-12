@@ -1,15 +1,15 @@
 {
-    "id": "weeklyCalendar",
-    "name": "Weekly Calendar",
-    "description": "A comprehensive weekly calendar with Evolution Data Server integration, ported from Noctalia.",
-    "version": "1.0.0",
+    "id": "dmsCalendar",
+    "name": "DMS Calendar",
+    "description": "A comprehensive calendar with Evolution Data Server integration, ported from Noctalia.",
+    "version": "2.0.0",
     "author": "arqueon (ported from dodaars)",
     "type": "widget",
     "capabilities": [
         "dankbar-widget"
     ],
-    "component": "./WeeklyCalendar.qml",
-    "settings": "./WeeklyCalendarSettings.qml",
+    "component": "./DMSCalendar.qml",
+    "settings": "./DMSCalendarSettings.qml",
     "icon": "calendar_month",
     "permissions": [
         "settings_read",
