@@ -62,7 +62,10 @@ The plugin reads data from Evolution Data Server. You can add calendars in sever
 
 1. **GNOME Online Accounts**: Add Google, Microsoft or Nextcloud accounts via `gnome-control-center` → Online Accounts.
 2. **Evolution client**: Add CalDAV, ICS or Webcal sources directly in the Evolution app.
-3. **Standalone GOA** (without full GNOME): Install `gnome-online-accounts` + `gnome-control-center` to manage accounts in other window managers (e.g. Niri).
+3. **Standalone GOA** (without full GNOME): Install `gnome-online-accounts` + `gnome-control-center` to manage accounts in other window managers (e.g. Niri). Once installed, you can execute it from Niri using the command:
+   ```bash
+   XDG_CURRENT_DESKTOP=GNOME gnome-control-center
+   ```
 
 Once an account is enabled, the plugin detects and syncs it automatically on next load.
 
