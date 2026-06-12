@@ -23,6 +23,7 @@ QtObject {
         path: root.cacheFile
         onLoaded: {
             try {
+                if (!text || text.trim() === "") return;
                 var data = JSON.parse(text);
                 if (data.events)
                     root.events = data.events;
